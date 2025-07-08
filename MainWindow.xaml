@@ -1,0 +1,135 @@
+﻿<Window x:Class="WPF_Visualizer_Temp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:WPF_Visualizer_Temp"
+        mc:Ignorable="d"
+        Title="Napoleon - Access Database Viewer"
+        Height="600" Width="900"
+        Background="#f0f0f5"
+        WindowStartupLocation="CenterScreen">
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- App Header -->
+        <Border Background="#2c3e50" CornerRadius="8" Padding="15" Margin="0,0,0,10">
+            <TextBlock Text="NAPOLEON"
+                       FontSize="28"
+                       FontWeight="Bold"
+                       Foreground="White"
+                       FontFamily="Georgia"
+                       HorizontalAlignment="Center"
+                       VerticalAlignment="Center"/>
+        </Border>
+
+        <!-- File Selection Row -->
+        <Grid Grid.Row="1" Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <!-- Open File Button -->
+                <ColumnDefinition Width="*"/>
+                <!-- File path text -->
+                <ColumnDefinition Width="Auto"/>
+                <!-- New Entry Button -->
+            </Grid.ColumnDefinitions>
+
+            <!-- Open File Button -->
+            <Button Content="Open Access File"
+            Width="160"
+            Background="#34495e"
+            Foreground="White"
+            FontWeight="Bold"
+            BorderThickness="0"
+            Padding="8,4"
+            Click="OpenFile_Click"
+            Cursor="Hand"
+            Grid.Column="0"/>
+
+            <!-- File Path Text -->
+            <TextBlock x:Name="FilePathText"
+               Margin="10,0,0,0"
+               VerticalAlignment="Center"
+               Foreground="#2c3e50"
+               FontStyle="Italic"
+               Grid.Column="1"
+               TextTrimming="CharacterEllipsis"
+               MaxWidth="400"/>
+
+            <!-- New Entry Button -->
+            <Button Content="New Entry"
+            Width="120"
+            Background="#27ae60"
+            Foreground="White"
+            FontWeight="Bold"
+            Padding="8,4"
+            Margin="10,0,0,0"
+            Click="NewEntry_Click"
+            Cursor="Hand"
+            Grid.Column="2"/>
+        </Grid>
+
+        <!-- Main Display -->
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="220"/>
+                <ColumnDefinition Width="22*"/>
+                <ColumnDefinition Width="103*"/>
+                <ColumnDefinition Width="87*"/>
+                <ColumnDefinition Width="428*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- Table List -->
+            <Border Grid.Column="0"
+                    Background="White"
+                    BorderBrush="#bdc3c7"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Padding="5"
+                    Margin="0,0,10,0"
+                    >
+                <StackPanel>
+                    <TextBlock Text="Tables"
+                               FontWeight="Bold"
+                               FontSize="16"
+                               Foreground="#2c3e50"
+                               Margin="0,0,0,5"/>
+                    <ListBox x:Name="TablesListBox"
+                             SelectionChanged="TablesListBox_SelectionChanged"
+                             Background="#ecf0f1"
+                             BorderThickness="0"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Data Display -->
+            <Border Grid.Column="1"
+                    Background="White"
+                    BorderBrush="#bdc3c7"
+                    BorderThickness="1"
+                    CornerRadius="5"
+                    Padding="5" Grid.ColumnSpan="4">
+                <DataGrid x:Name="DataGridDisplay"
+                  AutoGenerateColumns="True"
+                  EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  ScrollViewer.CanContentScroll="True"
+                  AlternatingRowBackground="#f9f9f9"
+                  RowBackground="White"
+                  BorderThickness="0"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserReorderColumns="True"
+                  CanUserResizeColumns="True"
+                  CanUserResizeRows="False"
+                  CanUserSortColumns="True"/>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>
