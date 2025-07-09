@@ -1,14 +1,50 @@
-﻿<Window x:Class="WPF_Visualizer_Temp.NewEntryPage"
+﻿<Window x:Class="WPF_Visualizer_Temp.NewEntrypage"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:WPF_Visualizer_Temp"
-        mc:Ignorable="d"
-        Title="Window1" Height="450" Width="800">
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel x:Name="FormPanel" Margin="10">
-            <Button Content="Submit" Margin="0,10,0,0" Click="Submit_Click"/>
-        </StackPanel>
-    </ScrollViewer>
+        Title="New Entry"
+        Height="450"
+        Width="400"
+        ResizeMode="NoResize"
+        Background="#f0f0f5"
+        WindowStartupLocation="CenterOwner">
+
+    <Border Margin="15" Padding="20" Background="White" BorderBrush="#bdc3c7" BorderThickness="1" CornerRadius="10">
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <!-- Header -->
+                <RowDefinition Height="*"/>
+                <!-- Form -->
+                <RowDefinition Height="Auto"/>
+                <!-- Submit Button -->
+            </Grid.RowDefinitions>
+
+            <!-- Header -->
+            <TextBlock Grid.Row="0"
+                   Text="Add New Entry"
+                   FontSize="20"
+                   FontWeight="Bold"
+                   Foreground="#2c3e50"
+                   Margin="0,0,0,10"/>
+
+            <!-- Scrollable Form -->
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+                <StackPanel x:Name="FormPanel"/>
+            </ScrollViewer>
+
+            <!-- Submit Button -->
+            <Button Grid.Row="2"
+                Content="Submit"
+                HorizontalAlignment="Right"
+                Margin="0,10,0,0"
+                Padding="10,5"
+                Width="100"
+                Background="#27ae60"
+                Foreground="White"
+                FontWeight="Bold"
+                BorderThickness="0"
+                Click="Submit_Click"
+                Cursor="Hand"/>
+        </Grid>
+    </Border>
 </Window>

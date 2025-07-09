@@ -4,6 +4,6 @@
              xmlns:local="clr-namespace:WPF_Visualizer_Temp"
              StartupUri="MainWindow.xaml">
     <Application.Resources>
-         
+        <local:FileNameConverter x:Key="FileNameConverter"/>
     </Application.Resources>
 </Application>

@@ -1,21 +1,38 @@
 ﻿using System.Data;
 using System.Data.OleDb;
+using System.IO;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Windows;
+using System.Windows.Controls;
 using Microsoft.Win32;
+
+
 
 namespace WPF_Visualizer_Temp
 {
-    /// <summary>
-    /// Interaction logic for MainWindow.xaml
-    /// </summary>
     public partial class MainWindow : Window
     {
         private string _accessFilePath = string.Empty;
+        private const string BookmarkFile = "bookmarks.json";
+        private List<Bookmark> _bookmarks = new();
+        private bool showingBookmarks = true;
 
         public MainWindow()
         {
             InitializeComponent();
+            LoadBookmarks();
         }
+
+        private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
+        {
+            showingBookmarks = !showingBookmarks;
+
+            TablesListBox.Visibility = showingBookmarks ? Visibility.Collapsed : Visibility.Visible;
+            BookmarksListBox.Visibility = showingBookmarks ? Visibility.Visible : Visibility.Collapsed;
+            SidebarTitle.Text = showingBookmarks ? "Bookmarks" : "Tables";
+        }
+
 
         private void OpenFile_Click(object sender, RoutedEventArgs e)
         {
@@ -34,6 +51,14 @@ namespace WPF_Visualizer_Temp
                 {
                     var tableNames = GetAccessTableNames(_accessFilePath);
                     TablesListBox.ItemsSource = tableNames;
+                    BookmarksListBox.Visibility = Visibility.Collapsed;
+                    TablesListBox.Visibility = Visibility.Visible;
+                    SidebarTitle.Text = "Tables";
+                    showingBookmarks = false;
+
+                    // Clear previous selection
+                    TablesListBox.SelectedItem = null;
+                    DataGridDisplay.ItemsSource = null;
                 }
                 catch (Exception ex)
                 {
@@ -149,6 +174,120 @@ namespace WPF_Visualizer_Temp
             command.ExecuteNonQuery();
         }
 
+
+        private void SaveBookmarks()
+        {
+            var json = JsonSerializer.Serialize(_bookmarks, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(BookmarkFile, json);
+        }
+
+        private void BookmarkTableFromList_Click(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true; // Prevent click from reaching ListBoxItem
+
+            if (sender is Button btn && btn.Tag is string tableName && !string.IsNullOrEmpty(_accessFilePath))
+            {
+                if (_bookmarks.Any(b => b.DatabasePath == _accessFilePath && b.TableName == tableName))
+                {
+                    MessageBox.Show("This table is already bookmarked.");
+                    return;
+                }
+
+                var bookmark = new Bookmark
+                {
+                    DatabasePath = _accessFilePath,
+                    TableName = tableName
+                };
+
+                _bookmarks.Add(bookmark);
+                SaveBookmarks();
+
+                BookmarksListBox.ItemsSource = null;
+                BookmarksListBox.ItemsSource = _bookmarks;
+
+                MessageBox.Show($"Bookmarked: {System.IO.Path.GetFileName(_accessFilePath)} → {tableName}", "Bookmark Added");
+            }
+        }
+
+
+        private void BookmarksListBox_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (BookmarksListBox.SelectedItem is Bookmark bookmark)
+            {
+                LoadBookmark(bookmark);
+            }
+        }
+
+        private void LoadBookmarks()
+        {
+            if (File.Exists(BookmarkFile))
+            {
+                try
+                {
+                    var json = File.ReadAllText(BookmarkFile);
+                    _bookmarks = JsonSerializer.Deserialize<List<Bookmark>>(json) ?? new List<Bookmark>();
+                    BookmarksListBox.ItemsSource = _bookmarks;
+
+                    // Show Bookmarks view by default
+                    TablesListBox.Visibility = Visibility.Collapsed;
+                    BookmarksListBox.Visibility = Visibility.Visible;
+                    SidebarTitle.Text = "Bookmarks";
+                    showingBookmarks = true;
+
+                    BookmarksListBox.SelectedItem = null;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to load bookmarks:\n{ex.Message}", "Error");
+                }
+            }
+        }
+        private void LoadBookmark(Bookmark bookmark)
+        {
+            try
+            {
+                _accessFilePath = bookmark.DatabasePath;
+                FilePathText.Text = _accessFilePath;
+
+                var tableNames = GetAccessTableNames(_accessFilePath);
+                TablesListBox.ItemsSource = tableNames;
+
+                // Set and load the bookmarked table
+                TablesListBox.SelectedItem = bookmark.TableName;
+                var dataTable = LoadTableData(_accessFilePath, bookmark.TableName);
+                DataGridDisplay.ItemsSource = dataTable.DefaultView;
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Failed to load bookmark:\n{ex.Message}", "Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void DeleteBookmark_Click(object sender, RoutedEventArgs e)
+        {
+            e.Handled = true; // Prevent selection change
+
+            if (sender is Button btn && btn.Tag is Bookmark bookmark)
+            {
+                var result = MessageBox.Show($"Delete bookmark for '{bookmark.TableName}'?",
+                                             "Confirm Delete",
+                                             MessageBoxButton.YesNo,
+                                             MessageBoxImage.Warning);
+
+                if (result == MessageBoxResult.Yes)
+                {
+                    _bookmarks.Remove(bookmark);
+                    SaveBookmarks();
+
+                    BookmarksListBox.ItemsSource = null;
+                    BookmarksListBox.ItemsSource = _bookmarks;
+
+                    BookmarksListBox.SelectedItem = null;
+                    DataGridDisplay.ItemsSource = null;
+                    FilePathText.Text = string.Empty;
+                }
+            }
+        }
 
     }
 }

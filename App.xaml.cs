@@ -2,6 +2,7 @@
 using System.Data;
 using System.Windows;
 
+
 namespace WPF_Visualizer_Temp
 {
     /// <summary>

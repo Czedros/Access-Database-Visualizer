@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:WPF_Visualizer_Temp"
         mc:Ignorable="d"
-        Title="Napoleon - Access Database Viewer"
+        Title="Access Database Viewer"
         Height="600" Width="900"
         Background="#f0f0f5"
         WindowStartupLocation="CenterScreen">
@@ -19,7 +19,7 @@
 
         <!-- App Header -->
         <Border Background="#2c3e50" CornerRadius="8" Padding="15" Margin="0,0,0,10">
-            <TextBlock Text="NAPOLEON"
+            <TextBlock Text="Access Database Editor"
                        FontSize="28"
                        FontWeight="Bold"
                        Foreground="White"
@@ -53,7 +53,7 @@
 
             <!-- File Path Text -->
             <TextBlock x:Name="FilePathText"
-               Margin="10,0,0,0"
+               Margin="160,0,0,0"
                VerticalAlignment="Center"
                Foreground="#2c3e50"
                FontStyle="Italic"
@@ -72,6 +72,7 @@
             Click="NewEntry_Click"
             Cursor="Hand"
             Grid.Column="2"/>
+            
         </Grid>
 
         <!-- Main Display -->
@@ -94,15 +95,93 @@
                     Margin="0,0,10,0"
                     >
                 <StackPanel>
-                    <TextBlock Text="Tables"
-                               FontWeight="Bold"
-                               FontSize="16"
-                               Foreground="#2c3e50"
-                               Margin="0,0,0,5"/>
+                    <DockPanel Margin="0,0,0,5">
+                        <TextBlock x:Name="SidebarTitle"
+                   Text="Tables"
+                   FontWeight="Bold"
+                   FontSize="16"
+                   Foreground="#2c3e50"
+                   DockPanel.Dock="Left"/>
+                        <Button Content="📌"
+                ToolTip="Toggle Bookmarks"
+                Width="30"
+                Height="24"
+                Margin="5,0,0,0"
+                Click="ToggleSidebar_Click"
+                DockPanel.Dock="Right"/>
+                    </DockPanel>
+
+                    <!-- List for Tables -->
                     <ListBox x:Name="TablesListBox"
-                             SelectionChanged="TablesListBox_SelectionChanged"
-                             Background="#ecf0f1"
-                             BorderThickness="0"/>
+                     Background="#ecf0f1"
+                     BorderThickness="0"
+                     SelectionChanged="TablesListBox_SelectionChanged"
+                     SelectionMode="Single">
+                        <ListBox.ItemContainerStyle>
+                            <Style TargetType="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+                            </Style>
+                        </ListBox.ItemContainerStyle>
+
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,2" LastChildFill="True" Cursor="Hand">
+                                    <!-- Bookmark Button -->
+                                    <Button Content="★"
+                        Width="25"
+                        Height="25"
+                        Margin="0,0,5,0"
+                        VerticalAlignment="Center"
+                        DockPanel.Dock="Left"
+                        ToolTip="Bookmark this table"
+                        Tag="{Binding}"
+                        Click="BookmarkTableFromList_Click"/>
+
+                                    <!-- Table Name -->
+                                    <TextBlock Text="{Binding}"
+                           VerticalAlignment="Center"
+                           FontSize="14"
+                           Foreground="#2c3e50"
+                           Padding="4"/>
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+
+                    <!-- List for Bookmarks -->
+                    <ListBox x:Name="BookmarksListBox"
+                     SelectionChanged="BookmarksListBox_SelectionChanged"
+                     Background="#ecf0f1"
+                     BorderThickness="0"
+                     Height="150">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="4,2" LastChildFill="True" Cursor="Hand">
+
+                                    <Button Content="🗑️"
+                        Width="25"
+                        Height="25"
+                        Margin="0,0,6,0"
+                        VerticalAlignment="Center"
+                        DockPanel.Dock="Left"
+                        Tag="{Binding}"
+                        ToolTip="Remove Bookmark"
+                        Click="DeleteBookmark_Click"/>
+
+                                    <!-- Table + File Display -->
+                                    <TextBlock VerticalAlignment="Center">
+                                        <TextBlock.Text>
+                                            <MultiBinding StringFormat="{}{0} • {1}">
+                                                <Binding Path="TableName"/>
+                                                <Binding Path="DatabasePath" Converter="{StaticResource FileNameConverter}"/>
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
+
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </StackPanel>
             </Border>
 
