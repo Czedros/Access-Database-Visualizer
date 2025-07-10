@@ -21,6 +21,19 @@ namespace WPF_Visualizer_Temp
             InitializeComponent();
             _schema = schema;
             _tableName = tableName;
+            Title = _editingRow == null ? "New Entry" : "Edit Entry";
+            BuildForm();
+        }
+
+        private readonly DataRow? _editingRow;
+
+        public NewEntryPage(DataTable schema, string tableName, DataRow? editingRow = null)
+        {
+            InitializeComponent();
+            _schema = schema;
+            _tableName = tableName;
+            _editingRow = editingRow;
+            Title = _editingRow == null ? "New Entry" : "Edit Entry";
             BuildForm();
         }
 
@@ -43,22 +56,31 @@ namespace WPF_Visualizer_Temp
 
                 Control input;
 
-                // Create control based on data type
                 if (dataType == typeof(bool))
                 {
-                    input = new CheckBox
+                    var checkBox = new CheckBox
                     {
                         Name = $"Field_{columnName}",
                         IsChecked = false
                     };
+
+                    if (_editingRow != null && _editingRow[columnName] != DBNull.Value)
+                        checkBox.IsChecked = Convert.ToBoolean(_editingRow[columnName]);
+
+                    input = checkBox;
                 }
                 else
                 {
-                    input = new TextBox
+                    var textBox = new TextBox
                     {
                         Name = $"Field_{columnName}",
                         Width = 200
                     };
+
+                    if (_editingRow != null && _editingRow[columnName] != DBNull.Value)
+                        textBox.Text = _editingRow[columnName].ToString();
+
+                    input = textBox;
                 }
 
                 FormPanel.Children.Add(label);

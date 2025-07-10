@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Data;
 using Microsoft.Win32;
 
 
@@ -22,14 +23,15 @@ namespace WPF_Visualizer_Temp
         {
             InitializeComponent();
             LoadBookmarks();
+            RefreshBookmarkView();
         }
 
         private void ToggleSidebar_Click(object sender, RoutedEventArgs e)
         {
             showingBookmarks = !showingBookmarks;
 
-            TablesListBox.Visibility = showingBookmarks ? Visibility.Collapsed : Visibility.Visible;
-            BookmarksListBox.Visibility = showingBookmarks ? Visibility.Visible : Visibility.Collapsed;
+            TablesScroll.Visibility = showingBookmarks ? Visibility.Collapsed : Visibility.Visible;
+            BookmarksScroll.Visibility = showingBookmarks ? Visibility.Visible : Visibility.Collapsed;
             SidebarTitle.Text = showingBookmarks ? "Bookmarks" : "Tables";
         }
 
@@ -201,10 +203,7 @@ namespace WPF_Visualizer_Temp
 
                 _bookmarks.Add(bookmark);
                 SaveBookmarks();
-
-                BookmarksListBox.ItemsSource = null;
-                BookmarksListBox.ItemsSource = _bookmarks;
-
+                RefreshBookmarkView();
                 MessageBox.Show($"Bookmarked: {System.IO.Path.GetFileName(_accessFilePath)} → {tableName}", "Bookmark Added");
             }
         }
@@ -226,15 +225,15 @@ namespace WPF_Visualizer_Temp
                 {
                     var json = File.ReadAllText(BookmarkFile);
                     _bookmarks = JsonSerializer.Deserialize<List<Bookmark>>(json) ?? new List<Bookmark>();
-                    BookmarksListBox.ItemsSource = _bookmarks;
-
                     // Show Bookmarks view by default
-                    TablesListBox.Visibility = Visibility.Collapsed;
-                    BookmarksListBox.Visibility = Visibility.Visible;
+                    TablesScroll.Visibility = Visibility.Collapsed;
+                    BookmarksScroll.Visibility = Visibility.Visible;
                     SidebarTitle.Text = "Bookmarks";
                     showingBookmarks = true;
 
+
                     BookmarksListBox.SelectedItem = null;
+                    RefreshBookmarkView();
                 }
                 catch (Exception ex)
                 {
@@ -256,6 +255,7 @@ namespace WPF_Visualizer_Temp
                 TablesListBox.SelectedItem = bookmark.TableName;
                 var dataTable = LoadTableData(_accessFilePath, bookmark.TableName);
                 DataGridDisplay.ItemsSource = dataTable.DefaultView;
+                RefreshBookmarkView();
             }
             catch (Exception ex)
             {
@@ -279,15 +279,111 @@ namespace WPF_Visualizer_Temp
                     _bookmarks.Remove(bookmark);
                     SaveBookmarks();
 
-                    BookmarksListBox.ItemsSource = null;
-                    BookmarksListBox.ItemsSource = _bookmarks;
-
                     BookmarksListBox.SelectedItem = null;
                     DataGridDisplay.ItemsSource = null;
                     FilePathText.Text = string.Empty;
                 }
+                RefreshBookmarkView();
+            }
+        }
+        private void RefreshBookmarkView()
+        {
+            var cvs = (CollectionViewSource)FindResource("BookmarkView");
+            cvs.Source = _bookmarks;
+
+            cvs.GroupDescriptions.Clear();
+            var converter = (IValueConverter)Application.Current.Resources["FileNameConverter"];
+            cvs.GroupDescriptions.Add(new PropertyGroupDescription("DatabasePath", converter));
+        }
+
+        private void DataGridDisplay_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
+        {
+            if (e.PropertyName == "Actions")
+            {
+                e.Cancel = true;
             }
         }
 
+        private void EditRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is DataRowView rowView && TablesListBox.SelectedItem is string tableName)
+            {
+                try
+                {
+                    var schema = GetTableSchema(_accessFilePath, tableName);
+                    var editWindow = new NewEntryPage(schema, tableName, rowView.Row);
+
+                    if (editWindow.ShowDialog() == true)
+                    {
+                        UpdateRow(_accessFilePath, tableName, rowView.Row, editWindow.EntryValues);
+                        var updatedTable = LoadTableData(_accessFilePath, tableName);
+                        DataGridDisplay.ItemsSource = updatedTable.DefaultView;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to edit row:\n{ex.Message}");
+                }
+            }
+        }
+
+        private void DeleteRow_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is DataRowView rowView && TablesListBox.SelectedItem is string tableName)
+            {
+                var result = MessageBox.Show("Are you sure you want to delete this row?", "Confirm Delete", MessageBoxButton.YesNo);
+                if (result != MessageBoxResult.Yes) return;
+
+                try
+                {
+                    DeleteRow(_accessFilePath, tableName, rowView.Row);
+                    var updatedTable = LoadTableData(_accessFilePath, tableName);
+                    DataGridDisplay.ItemsSource = updatedTable.DefaultView;
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"Failed to delete row:\n{ex.Message}");
+                }
+            }
+        }
+
+        private void UpdateRow(string dbPath, string tableName, DataRow row, Dictionary<string, object> newValues)
+        {
+            var keyColumn = row.Table.PrimaryKey.FirstOrDefault();
+            if (keyColumn == null)
+                throw new Exception("No primary key found for table.");
+
+            var keyValue = row[keyColumn];
+            var updates = string.Join(",", newValues.Select(kv => $"[{kv.Key}] = @{kv.Key}"));
+
+            var connectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={dbPath};Persist Security Info=False;";
+            using var connection = new OleDbConnection(connectionString);
+            using var command = new OleDbCommand(
+                $"UPDATE [{tableName}] SET {updates} WHERE [{keyColumn.ColumnName}] = @key", connection);
+
+            foreach (var kv in newValues)
+                command.Parameters.AddWithValue($"@{kv.Key}", kv.Value ?? DBNull.Value);
+
+            command.Parameters.AddWithValue("@key", keyValue);
+            connection.Open();
+            command.ExecuteNonQuery();
+        }
+
+        private void DeleteRow(string dbPath, string tableName, DataRow row)
+        {
+            var keyColumn = row.Table.PrimaryKey.FirstOrDefault();
+            if (keyColumn == null)
+                throw new Exception("No primary key found for table.");
+
+            var keyValue = row[keyColumn];
+            var connectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={dbPath};Persist Security Info=False;";
+            using var connection = new OleDbConnection(connectionString);
+            using var command = new OleDbCommand(
+                $"DELETE FROM [{tableName}] WHERE [{keyColumn.ColumnName}] = @key", connection);
+
+            command.Parameters.AddWithValue("@key", keyValue);
+            connection.Open();
+            command.ExecuteNonQuery();
+        }
     }
 }

@@ -9,7 +9,9 @@
         Height="600" Width="900"
         Background="#f0f0f5"
         WindowStartupLocation="CenterScreen">
-
+    <Window.Resources>
+        <CollectionViewSource x:Key="BookmarkView" />
+    </Window.Resources>
     <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -17,148 +19,145 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- App Header -->
+        <!-- Header -->
         <Border Background="#2c3e50" CornerRadius="8" Padding="15" Margin="0,0,0,10">
             <TextBlock Text="Access Database Editor"
                        FontSize="28"
                        FontWeight="Bold"
                        Foreground="White"
                        FontFamily="Georgia"
-                       HorizontalAlignment="Center"
-                       VerticalAlignment="Center"/>
+                       HorizontalAlignment="Center"/>
         </Border>
 
-        <!-- File Selection Row -->
+        <!-- File Row -->
         <Grid Grid.Row="1" Margin="0,0,0,10">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="Auto"/>
-                <!-- Open File Button -->
                 <ColumnDefinition Width="*"/>
-                <!-- File path text -->
                 <ColumnDefinition Width="Auto"/>
-                <!-- New Entry Button -->
             </Grid.ColumnDefinitions>
 
-            <!-- Open File Button -->
             <Button Content="Open Access File"
-            Width="160"
-            Background="#34495e"
-            Foreground="White"
-            FontWeight="Bold"
-            BorderThickness="0"
-            Padding="8,4"
-            Click="OpenFile_Click"
-            Cursor="Hand"
-            Grid.Column="0"/>
+                    Width="160"
+                    Background="#34495e"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    Padding="8,4"
+                    BorderThickness="0"
+                    Click="OpenFile_Click"
+                    Cursor="Hand"
+                    Grid.Column="0"/>
 
-            <!-- File Path Text -->
             <TextBlock x:Name="FilePathText"
-               Margin="160,0,0,0"
-               VerticalAlignment="Center"
-               Foreground="#2c3e50"
-               FontStyle="Italic"
-               Grid.Column="1"
-               TextTrimming="CharacterEllipsis"
-               MaxWidth="400"/>
+                       VerticalAlignment="Center"
+                       Foreground="#2c3e50"
+                       FontStyle="Italic"
+                       Margin="10,0"
+                       TextTrimming="CharacterEllipsis"
+                       MaxWidth="400"
+                       Grid.Column="1"/>
 
-            <!-- New Entry Button -->
             <Button Content="New Entry"
-            Width="120"
-            Background="#27ae60"
-            Foreground="White"
-            FontWeight="Bold"
-            Padding="8,4"
-            Margin="10,0,0,0"
-            Click="NewEntry_Click"
-            Cursor="Hand"
-            Grid.Column="2"/>
-            
+                    Width="120"
+                    Background="#27ae60"
+                    Foreground="White"
+                    FontWeight="Bold"
+                    Padding="8,4"
+                    Margin="10,0,0,0"
+                    Click="NewEntry_Click"
+                    Cursor="Hand"
+                    Grid.Column="2"/>
         </Grid>
 
         <!-- Main Display -->
         <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="220"/>
-                <ColumnDefinition Width="22*"/>
-                <ColumnDefinition Width="103*"/>
-                <ColumnDefinition Width="87*"/>
-                <ColumnDefinition Width="428*"/>
+                <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
 
-            <!-- Table List -->
+            <!-- Sidebar: Tables / Bookmarks -->
             <Border Grid.Column="0"
                     Background="White"
                     BorderBrush="#bdc3c7"
                     BorderThickness="1"
                     CornerRadius="5"
                     Padding="5"
-                    Margin="0,0,10,0"
-                    >
+                    Margin="0,0,10,0">
                 <StackPanel>
                     <DockPanel Margin="0,0,0,5">
                         <TextBlock x:Name="SidebarTitle"
-                   Text="Tables"
-                   FontWeight="Bold"
-                   FontSize="16"
-                   Foreground="#2c3e50"
-                   DockPanel.Dock="Left"/>
-                        <Button Content="📌"
-                ToolTip="Toggle Bookmarks"
-                Width="30"
-                Height="24"
-                Margin="5,0,0,0"
-                Click="ToggleSidebar_Click"
-                DockPanel.Dock="Right"/>
+                                   Text="Tables"
+                                   FontWeight="Bold"
+                                   FontSize="16"
+                                   Foreground="#2c3e50"
+                                   DockPanel.Dock="Left"/>
+                        <Button Content="Bookmarks"
+                                ToolTip="Toggle Bookmarks"
+                                Width="30"
+                                Height="24"
+                                Margin="5,0,0,0"
+                                Click="ToggleSidebar_Click"
+                                DockPanel.Dock="Right"/>
                     </DockPanel>
 
-                    <!-- List for Tables -->
-                    <ListBox x:Name="TablesListBox"
-                     Background="#ecf0f1"
-                     BorderThickness="0"
-                     SelectionChanged="TablesListBox_SelectionChanged"
-                     SelectionMode="Single">
-                        <ListBox.ItemContainerStyle>
-                            <Style TargetType="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                            </Style>
-                        </ListBox.ItemContainerStyle>
+                    <Grid>
+                        <!-- Tables View -->
+                        <ScrollViewer x:Name="TablesScroll"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Visibility="Visible">
+                            <ListBox x:Name="TablesListBox"
+                                     SelectionChanged="TablesListBox_SelectionChanged"
+                                     Background="#ecf0f1"
+                                     BorderThickness="0">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="2" LastChildFill="True">
+                                            <Button Content="⭐"
+                                                    Width="25"
+                                                    Height="25"
+                                                    Margin="0,0,6,0"
+                                                    VerticalAlignment="Center"
+                                                    DockPanel.Dock="Left"
+                                                    Tag="{Binding}"
+                                                    ToolTip="Bookmark Table"
+                                                    Click="BookmarkTableFromList_Click"/>
+                                            <TextBlock Text="{Binding}" VerticalAlignment="Center"/>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
 
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <DockPanel Margin="0,2" LastChildFill="True" Cursor="Hand">
-                                    <!-- Bookmark Button -->
-                                    <Button Content="★"
-                        Width="25"
-                        Height="25"
-                        Margin="0,0,5,0"
-                        VerticalAlignment="Center"
-                        DockPanel.Dock="Left"
-                        ToolTip="Bookmark this table"
-                        Tag="{Binding}"
-                        Click="BookmarkTableFromList_Click"/>
+                        <!-- Bookmarks View -->
+                        <ScrollViewer x:Name="BookmarksScroll"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Visibility="Collapsed">
+                            <ListBox x:Name="BookmarksListBox"
+                             Background="#ecf0f1"
+                             BorderThickness="0"
+                             ItemsSource="{Binding Source={StaticResource BookmarkView}}"
+                             SelectionChanged="BookmarksListBox_SelectionChanged">
+                                <ListBox.GroupStyle>
+                                    <GroupStyle>
+                                        <GroupStyle.HeaderTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding Name}"
+                                                   FontWeight="Bold"
+                                                   FontSize="14"
+                                                   Foreground="#2c3e50"
+                                                   Margin="0,5,0,2"/>
+                                            </DataTemplate>
+                                        </GroupStyle.HeaderTemplate>
+                                    </GroupStyle>
+                                </ListBox.GroupStyle>
 
-                                    <!-- Table Name -->
-                                    <TextBlock Text="{Binding}"
-                           VerticalAlignment="Center"
-                           FontSize="14"
-                           Foreground="#2c3e50"
-                           Padding="4"/>
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
-
-                    <!-- List for Bookmarks -->
-                    <ListBox x:Name="BookmarksListBox"
-                     SelectionChanged="BookmarksListBox_SelectionChanged"
-                     Background="#ecf0f1"
-                     BorderThickness="0"
-                     Height="150">
-                        <ListBox.ItemTemplate>
-                            <DataTemplate>
-                                <DockPanel Margin="4,2" LastChildFill="True" Cursor="Hand">
-
-                                    <Button Content="🗑️"
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <DockPanel Margin="2" LastChildFill="True">
+                                            <Button Content="🗑️"
                         Width="25"
                         Height="25"
                         Margin="0,0,6,0"
@@ -167,21 +166,16 @@
                         Tag="{Binding}"
                         ToolTip="Remove Bookmark"
                         Click="DeleteBookmark_Click"/>
-
-                                    <!-- Table + File Display -->
-                                    <TextBlock VerticalAlignment="Center">
-                                        <TextBlock.Text>
-                                            <MultiBinding StringFormat="{}{0} • {1}">
-                                                <Binding Path="TableName"/>
-                                                <Binding Path="DatabasePath" Converter="{StaticResource FileNameConverter}"/>
-                                            </MultiBinding>
-                                        </TextBlock.Text>
-                                    </TextBlock>
-
-                                </DockPanel>
-                            </DataTemplate>
-                        </ListBox.ItemTemplate>
-                    </ListBox>
+                                            <TextBlock Text="{Binding TableName}"
+                           VerticalAlignment="Center"
+                           FontSize="14"
+                           Foreground="#2c3e50"/>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
+                    </Grid>
                 </StackPanel>
             </Border>
 
@@ -191,23 +185,45 @@
                     BorderBrush="#bdc3c7"
                     BorderThickness="1"
                     CornerRadius="5"
-                    Padding="5" Grid.ColumnSpan="4">
+                    Padding="5">
                 <DataGrid x:Name="DataGridDisplay"
-                  AutoGenerateColumns="True"
-                  EnableRowVirtualization="True"
-                  EnableColumnVirtualization="True"
-                  VirtualizingPanel.IsVirtualizing="True"
-                  VirtualizingPanel.VirtualizationMode="Recycling"
-                  ScrollViewer.CanContentScroll="True"
-                  AlternatingRowBackground="#f9f9f9"
-                  RowBackground="White"
-                  BorderThickness="0"
-                  CanUserAddRows="False"
-                  CanUserDeleteRows="False"
-                  CanUserReorderColumns="True"
-                  CanUserResizeColumns="True"
-                  CanUserResizeRows="False"
-                  CanUserSortColumns="True"/>
+                            AutoGenerateColumns="True"
+                            AutoGeneratingColumn="DataGridDisplay_AutoGeneratingColumn"
+                            EnableRowVirtualization="True"
+                            EnableColumnVirtualization="True"
+                            VirtualizingPanel.IsVirtualizing="True"
+                            VirtualizingPanel.VirtualizationMode="Recycling"
+                            ScrollViewer.CanContentScroll="True"
+                            AlternatingRowBackground="#f9f9f9"
+                            RowBackground="White"
+                            BorderThickness="0"
+                            CanUserAddRows="False"
+                            CanUserDeleteRows="False"
+                            CanUserReorderColumns="True"
+                            CanUserResizeColumns="True"
+                            CanUserResizeRows="False"
+                            CanUserSortColumns="True"
+                            Margin="0">
+                    <DataGrid.Columns>
+                        <!-- Placeholder for auto-generated columns -->
+                        <DataGridTemplateColumn Header="Actions" Width="100" IsReadOnly="True">
+                            <DataGridTemplateColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                        <Button Content="📝" 
+                                Width="28" Height="28" Margin="2"
+                                Click="EditRow_Click"
+                                Tag="{Binding}"/>
+                                        <Button Content="🗑️" 
+                                Width="28" Height="28" Margin="2"
+                                Click="DeleteRow_Click"
+                                Tag="{Binding}"/>
+                                    </StackPanel>
+                                </DataTemplate>
+                            </DataGridTemplateColumn.CellTemplate>
+                        </DataGridTemplateColumn>
+                    </DataGrid.Columns>
+                </DataGrid>
             </Border>
         </Grid>
     </Grid>
