@@ -60,7 +60,7 @@ namespace WPF_Visualizer_Temp
                 {
                     var checkBox = new CheckBox
                     {
-                        Name = $"Field_{columnName}",
+                        Name = $"Field_{SanitizeName(columnName)}",
                         IsChecked = false
                     };
 
@@ -73,7 +73,7 @@ namespace WPF_Visualizer_Temp
                 {
                     var textBox = new TextBox
                     {
-                        Name = $"Field_{columnName}",
+                        Name = $"Field_{SanitizeName(columnName)}",
                         Width = 200
                     };
 
@@ -108,6 +108,22 @@ namespace WPF_Visualizer_Temp
 
             DialogResult = true;
             Close();
+        }
+        private static string SanitizeName(string name)
+        {
+            // Only allow letters, digits, and underscores
+            var sb = new System.Text.StringBuilder();
+            foreach (char c in name)
+            {
+                if (char.IsLetterOrDigit(c) || c == '_')
+                    sb.Append(c);
+                else
+                    sb.Append('_');
+            }
+            // Ensure the first character is a letter or underscore
+            if (sb.Length == 0 || !(char.IsLetter(sb[0]) || sb[0] == '_'))
+                sb.Insert(0, '_');
+            return sb.ToString();
         }
     }
 }

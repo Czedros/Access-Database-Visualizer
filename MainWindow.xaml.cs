@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System.Collections.ObjectModel;
+using System.Data;
 using System.Data.OleDb;
 using System.IO;
 using System.Text.Json;
@@ -16,7 +17,7 @@ namespace WPF_Visualizer_Temp
     {
         private string _accessFilePath = string.Empty;
         private const string BookmarkFile = "bookmarks.json";
-        private List<Bookmark> _bookmarks = new();
+        private ObservableCollection<Bookmark> _bookmarks = new();
         private bool showingBookmarks = true;
 
         public MainWindow()
@@ -53,14 +54,17 @@ namespace WPF_Visualizer_Temp
                 {
                     var tableNames = GetAccessTableNames(_accessFilePath);
                     TablesListBox.ItemsSource = tableNames;
-                    BookmarksListBox.Visibility = Visibility.Collapsed;
-                    TablesListBox.Visibility = Visibility.Visible;
-                    SidebarTitle.Text = "Tables";
+
+                    // Always switch to tables view
                     showingBookmarks = false;
+                    TablesScroll.Visibility = Visibility.Visible;
+                    BookmarksScroll.Visibility = Visibility.Collapsed;
+                    SidebarTitle.Text = "Tables";
 
                     // Clear previous selection
                     TablesListBox.SelectedItem = null;
                     DataGridDisplay.ItemsSource = null;
+                    RefreshBookmarkView();
                 }
                 catch (Exception ex)
                 {
@@ -102,6 +106,7 @@ namespace WPF_Visualizer_Temp
                 {
                     var dataTable = LoadTableData(_accessFilePath, tableName);
                     DataGridDisplay.ItemsSource = dataTable.DefaultView;
+                    
                 }
                 catch (Exception ex)
                 {
@@ -224,13 +229,13 @@ namespace WPF_Visualizer_Temp
                 try
                 {
                     var json = File.ReadAllText(BookmarkFile);
-                    _bookmarks = JsonSerializer.Deserialize<List<Bookmark>>(json) ?? new List<Bookmark>();
+                    var loaded = JsonSerializer.Deserialize<List<Bookmark>>(json) ?? new List<Bookmark>();
+                    _bookmarks = new ObservableCollection<Bookmark>(loaded);
                     // Show Bookmarks view by default
                     TablesScroll.Visibility = Visibility.Collapsed;
                     BookmarksScroll.Visibility = Visibility.Visible;
                     SidebarTitle.Text = "Bookmarks";
                     showingBookmarks = true;
-
 
                     BookmarksListBox.SelectedItem = null;
                     RefreshBookmarkView();
@@ -265,7 +270,7 @@ namespace WPF_Visualizer_Temp
 
         private void DeleteBookmark_Click(object sender, RoutedEventArgs e)
         {
-            e.Handled = true; // Prevent selection change
+            e.Handled = true;
 
             if (sender is Button btn && btn.Tag is Bookmark bookmark)
             {
@@ -294,6 +299,8 @@ namespace WPF_Visualizer_Temp
             cvs.GroupDescriptions.Clear();
             var converter = (IValueConverter)Application.Current.Resources["FileNameConverter"];
             cvs.GroupDescriptions.Add(new PropertyGroupDescription("DatabasePath", converter));
+
+            cvs.View?.Refresh();
         }
 
         private void DataGridDisplay_AutoGeneratingColumn(object sender, DataGridAutoGeneratingColumnEventArgs e)
