@@ -124,6 +124,7 @@ namespace WPF_Visualizer_Temp
 
             var dataTable = new DataTable();
             connection.Open();
+            adapter.FillSchema(dataTable, SchemaType.Source);
             adapter.Fill(dataTable);
             return dataTable;
         }
@@ -317,12 +318,18 @@ namespace WPF_Visualizer_Temp
             {
                 try
                 {
+                    // Use schema only for form, not for the row!
                     var schema = GetTableSchema(_accessFilePath, tableName);
+                    var originalValues = rowView.Row.Table.Columns
+                        .Cast<DataColumn>()
+                        .ToDictionary(c => c.ColumnName, c => rowView.Row[c]);
+
                     var editWindow = new NewEntryPage(schema, tableName, rowView.Row);
 
                     if (editWindow.ShowDialog() == true)
                     {
-                        UpdateRow(_accessFilePath, tableName, rowView.Row, editWindow.EntryValues);
+                        // Use the original row from the DataGrid's DataTable
+                        UpdateRow(_accessFilePath, tableName, originalValues, editWindow.EntryValues);
                         var updatedTable = LoadTableData(_accessFilePath, tableName);
                         DataGridDisplay.ItemsSource = updatedTable.DefaultView;
                     }
@@ -354,41 +361,67 @@ namespace WPF_Visualizer_Temp
             }
         }
 
-        private void UpdateRow(string dbPath, string tableName, DataRow row, Dictionary<string, object> newValues)
+        private void UpdateRow(string dbPath, string tableName, Dictionary<string, object> originalValues, Dictionary<string, object> newValues)
         {
-            var keyColumn = row.Table.PrimaryKey.FirstOrDefault();
-            if (keyColumn == null)
-                throw new Exception("No primary key found for table.");
-
-            var keyValue = row[keyColumn];
-            var updates = string.Join(",", newValues.Select(kv => $"[{kv.Key}] = @{kv.Key}"));
+            var setClause = string.Join(", ", newValues.Keys.Select(k => $"[{k}] = @{k}"));
+            var whereClause = string.Join(" AND ", originalValues.Keys.Select(k => $"[{k}] = @old_{k}"));
 
             var connectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={dbPath};Persist Security Info=False;";
             using var connection = new OleDbConnection(connectionString);
             using var command = new OleDbCommand(
-                $"UPDATE [{tableName}] SET {updates} WHERE [{keyColumn.ColumnName}] = @key", connection);
+                $"UPDATE [{tableName}] SET {setClause} WHERE {whereClause}", connection);
 
-            foreach (var kv in newValues)
-                command.Parameters.AddWithValue($"@{kv.Key}", kv.Value ?? DBNull.Value);
+            // Add new values as parameters
+            foreach (var (key, value) in newValues)
+                command.Parameters.AddWithValue($"@{key}", value ?? DBNull.Value);
 
-            command.Parameters.AddWithValue("@key", keyValue);
+            // Add original values for WHERE clause
+            foreach (var (key, value) in originalValues)
+                command.Parameters.AddWithValue($"@old_{key}", value ?? DBNull.Value);
+
             connection.Open();
-            command.ExecuteNonQuery();
+            int affected = command.ExecuteNonQuery();
+
+            if (affected == 0)
+            {
+                MessageBox.Show("Update failed. The original row may not exist anymore or values may have changed.", "No Match", MessageBoxButton.OK, MessageBoxImage.Warning);
+            }
         }
 
         private void DeleteRow(string dbPath, string tableName, DataRow row)
         {
-            var keyColumn = row.Table.PrimaryKey.FirstOrDefault();
-            if (keyColumn == null)
-                throw new Exception("No primary key found for table.");
-
-            var keyValue = row[keyColumn];
             var connectionString = $"Provider=Microsoft.ACE.OLEDB.12.0;Data Source={dbPath};Persist Security Info=False;";
             using var connection = new OleDbConnection(connectionString);
-            using var command = new OleDbCommand(
-                $"DELETE FROM [{tableName}] WHERE [{keyColumn.ColumnName}] = @key", connection);
+            var command = new OleDbCommand();
+            command.Connection = connection;
 
-            command.Parameters.AddWithValue("@key", keyValue);
+            string whereClause;
+            if (row.Table.PrimaryKey.Length > 0)
+            {
+                var keyColumn = row.Table.PrimaryKey[0];
+                var keyValue = row[keyColumn];
+                whereClause = $"[{keyColumn.ColumnName}] = @key";
+                command.Parameters.AddWithValue("@key", keyValue);
+            }
+            else
+            {
+                MessageBox.Show(
+                    "Warning: This table has no primary key. The deletion will match all column values to identify the row, which may affect multiple rows.",
+                    "No Primary Key",
+                    MessageBoxButton.OK,
+                    MessageBoxImage.Warning);
+
+                whereClause = string.Join(" AND ", row.Table.Columns
+                    .Cast<DataColumn>()
+                    .Where(c => !c.AutoIncrement)
+                    .Select(c =>
+                    {
+                        var param = $"@old_{c.ColumnName}";
+                        command.Parameters.AddWithValue(param, row[c] ?? DBNull.Value);
+                        return $"[{c.ColumnName}] = {param}";
+                    }));
+            }
+            command.CommandText = $"DELETE FROM [{tableName}] WHERE {whereClause}";
             connection.Open();
             command.ExecuteNonQuery();
         }
