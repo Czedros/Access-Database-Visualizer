@@ -1,4 +1,5 @@
-﻿using System.Collections.ObjectModel;
+﻿using Microsoft.Win32;
+using System.Collections.ObjectModel;
 using System.Data;
 using System.Data.OleDb;
 using System.IO;
@@ -6,8 +7,8 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Controls.Primitives;
 using System.Windows.Data;
-using Microsoft.Win32;
 
 
 
@@ -424,6 +425,91 @@ namespace WPF_Visualizer_Temp
             command.CommandText = $"DELETE FROM [{tableName}] WHERE {whereClause}";
             connection.Open();
             command.ExecuteNonQuery();
+        }
+
+        private Popup? _popup;
+        private ColumnFilterPopup? _filterPopup;
+        private string? _activeColumn;
+
+        private void HeaderFilter_Click(object sender, RoutedEventArgs e)
+        {
+            if (sender is Button btn && btn.Tag is string columnName && DataGridDisplay.ItemsSource is DataView view)
+            {
+                // Close previous popup
+                if (_popup != null)
+                {
+                    _popup.IsOpen = false;
+                    _popup = null;
+                }
+
+                _activeColumn = columnName;
+
+                // Collect unique values from the DataView
+                var valuesTable = view.ToTable(true, columnName);
+                var values = valuesTable
+                    .AsEnumerable()
+                    .Select(row => row[columnName]?.ToString() ?? "")
+                    .OrderBy(v => v)
+                    .ToList();
+
+                // Create and configure popup
+                _filterPopup = new ColumnFilterPopup();
+                _filterPopup.LoadValues(values.ToList());
+
+                _filterPopup.FilterApplied += ApplyFilter;
+                _filterPopup.SortAscending += () => SortColumn(columnName, ascending: true);
+                _filterPopup.SortDescending += () => SortColumn(columnName, ascending: false);
+                _filterPopup.ResetFilter += ResetColumnFilter;
+
+                _popup = new Popup
+                {
+                    PlacementTarget = btn,
+                    Placement = PlacementMode.Bottom,
+                    StaysOpen = false,
+                    Child = _filterPopup,
+                    AllowsTransparency = true,
+                    PopupAnimation = PopupAnimation.Fade,
+                    MinWidth = 200
+                };
+
+                _popup.IsOpen = true;
+            }
+        }
+        private void ApplyFilter(List<string> selectedValues)
+        {
+            if (_activeColumn != null && DataGridDisplay.ItemsSource is DataView view)
+            {
+                var escaped = selectedValues
+                    .Select(v => $"'{v.Replace("'", "''")}'");
+
+                view.RowFilter = $"{_activeColumn} IN ({string.Join(",", escaped)})";
+            }
+
+            if (_popup != null)
+                _popup.IsOpen = false;
+        }
+
+        private void SortColumn(string columnName, bool ascending)
+        {
+            if (DataGridDisplay.ItemsSource is DataView view)
+            {
+                view.Sort = $"{columnName} {(ascending ? "ASC" : "DESC")}";
+            }
+
+            if (_popup != null)
+                _popup.IsOpen = false;
+        }
+
+        private void ResetColumnFilter()
+        {
+            if (DataGridDisplay.ItemsSource is DataView view)
+            {
+                view.RowFilter = "";
+                view.Sort = "";
+            }
+
+            if (_popup != null)
+                _popup.IsOpen = false;
         }
     }
 }

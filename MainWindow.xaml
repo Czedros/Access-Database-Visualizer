@@ -187,25 +187,62 @@
                     CornerRadius="5"
                     Padding="5">
                 <DataGrid x:Name="DataGridDisplay"
-                            AutoGenerateColumns="True"
-                            AutoGeneratingColumn="DataGridDisplay_AutoGeneratingColumn"
-                            EnableRowVirtualization="True"
-                            EnableColumnVirtualization="True"
-                            VirtualizingPanel.IsVirtualizing="True"
-                            VirtualizingPanel.VirtualizationMode="Recycling"
-                            ScrollViewer.CanContentScroll="True"
-                            AlternatingRowBackground="#f9f9f9"
-                            RowBackground="White"
-                            BorderThickness="0"
-                            CanUserAddRows="False"
-                            CanUserDeleteRows="False"
-                            CanUserReorderColumns="True"
-                            CanUserResizeColumns="True"
-                            CanUserResizeRows="False"
-                            CanUserSortColumns="True"
-                            Margin="0">
+                  AutoGenerateColumns="True"
+                  AutoGeneratingColumn="DataGridDisplay_AutoGeneratingColumn"
+                  EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  ScrollViewer.CanContentScroll="True"
+                  AlternatingRowBackground="#f9f9f9"
+                  RowBackground="White"
+                  BorderThickness="0"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserReorderColumns="True"
+                  CanUserResizeColumns="True"
+                  CanUserResizeRows="False"
+                  CanUserSortColumns="True"
+                  Margin="0">
+
+                    <!-- ✅ 1. Add this style inside the DataGrid -->
+                    <DataGrid.Resources>
+                        <Style TargetType="DataGridColumnHeader">
+                            <Setter Property="Template">
+                                <Setter.Value>
+                                    <ControlTemplate TargetType="DataGridColumnHeader">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!-- Header text -->
+                                            <ContentPresenter 
+                                            VerticalAlignment="Center"
+                                            Margin="4,0,4,0"
+                                            RecognizesAccessKey="True"
+                                            Content="{TemplateBinding Content}" 
+                                            Grid.Column="0" />
+
+                                            <!-- Filter Button -->
+                                            <Button Content="▼"
+                                Width="16" Height="16"
+                                Margin="4,0,4,0"
+                                HorizontalAlignment="Right"
+                                VerticalAlignment="Center"
+                                Grid.Column="1"
+                                Click="HeaderFilter_Click"
+                                Tag="{TemplateBinding Content}" />
+                                        </Grid>
+                                    </ControlTemplate>
+                                </Setter.Value>
+                            </Setter>
+                        </Style>
+                    </DataGrid.Resources>
+
+                    <!-- ✅ 2. Your manual Actions column -->
                     <DataGrid.Columns>
-                        <!-- Placeholder for auto-generated columns -->
                         <DataGridTemplateColumn Header="Actions" Width="100" IsReadOnly="True">
                             <DataGridTemplateColumn.CellTemplate>
                                 <DataTemplate>
